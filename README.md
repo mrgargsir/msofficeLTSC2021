@@ -26,10 +26,9 @@ here we go, installed from original microsoft server and legal.
 by mrgargsir
 
 
-if product is not activated after this
-then use below steps also
+## if product is not activated after this then use below steps also
 
-## How to Activate Windows / Office / Extended Updates (ESU)?
+### Activate Windows / Office / Extended Updates (ESU)?
 
 ### Method 1 - PowerShell ❤️
 
