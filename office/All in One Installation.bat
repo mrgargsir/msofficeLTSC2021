@@ -13,15 +13,15 @@ set ODTEXE=officedeploymenttool_17830-20162.exe
 set ODTURL=https://github.com/mrgargsir/msofficeLTSC2021/releases/download/21.1/officedeploymenttool_17830-20162.exe
 
 if /i not "%CURRENTDIR%"=="%TARGETDIR%" (
-    echo Moving installer files to %TARGETDIR% ...
+    echo Moving installer file to %TARGETDIR% ...
     echo.
 
     if not exist "%TARGETDIR%" (
         mkdir "%TARGETDIR%"
     )
 
-    REM Copy everything first (safer than move)
-    xcopy "%CURRENTDIR%\*" "%TARGETDIR%\" /E /H /C /I /Y >nul
+    REM Copy only the BAT file itself
+    copy "%~f0" "%TARGETDIR%\%~nx0" >nul
 
     REM Relaunch BAT from target directory
     start "" "%TARGETDIR%\%~nx0"
@@ -34,7 +34,6 @@ cd /d "%TARGETDIR%"
 REM =====================================================
 REM  ENSURE OFFICE DEPLOYMENT TOOL EXISTS
 REM =====================================================
-
 
 if not exist "%TARGETDIR%\%ODTEXE%" (
     echo Office Deployment Tool not found.
@@ -70,28 +69,23 @@ echo Installing Office Deployment Tool
 echo =========================================
 echo.
 
-    if not exist "%ODTEXE%" (
-        echo ERROR: %ODTEXE% not found.
-        pause
-        exit /b 1
-    )
+if not exist "%ODTEXE%" (
+    echo ERROR: %ODTEXE% not found.
+    pause
+    exit /b 1
+)
 
-    REM Extract ODT (this creates setup.exe)
-    "%ODTEXE%" /quiet /extract:"%TARGETDIR%"
+REM Extract ODT (this creates setup.exe)
+"%ODTEXE%" /quiet /extract:"%TARGETDIR%"
 
-    if errorlevel 1 (
-        echo ERROR: Office Deployment Tool failed.
-        pause
-        exit /b 1
-    )
+if errorlevel 1 (
+    echo ERROR: Office Deployment Tool failed.
+    pause
+    exit /b 1
+)
 
-    echo ODT installation completed.
-    echo.
-
-    echo.
-    echo Relaunching installer...
-    echo start "" "%TARGETDIR%\%~nx0"
-    echo exit /b
+echo ODT installation completed.
+echo.
 
 echo =========================================
 echo Microsoft Office LTSC 2021 Setup
@@ -144,7 +138,6 @@ if not exist "%TARGETDIR%\configuration.xml" (
     echo.
 )
 
-
 REM ---- CONFIG ----
 set SETUPURL=https://officecdn.microsoft.com/pr/wsus/setup.exe
 set SETUPEXE=%CD%\setup.exe
@@ -184,18 +177,80 @@ echo.
 REM ---- START OFFICE DOWNLOAD IN BACKGROUND ----
 start "" /b "%SETUPEXE%" /download "%CONFIG%"
 
-REM ---- SPINNER ----
-set spinner=|/-\
+REM 👉 SIMPLIFIED: Show downloaded data size instead of speed
+set spinner=^|/-\
 set index=0
+set downloaded_size=0
+set formatted_size=0 KB
+
+REM 👉 Get initial Office folder size for tracking
+if exist "%TARGETDIR%\Office" (
+    for /f "tokens=3" %%a in ('dir /s /-c "%TARGETDIR%\Office" 2^>nul ^| find "File(s)"') do set "downloaded_size=%%a"
+    set "downloaded_size=!downloaded_size:,=!"
+    call :FORMAT_SIZE
+) else (
+    set downloaded_size=0
+    set formatted_size=0 KB
+)
 
 :SPINNER
-tasklist /fi "imagename eq setup.exe" | find /i "setup.exe" >nul
+REM Check if setup.exe is still running
+tasklist /fi "imagename eq setup.exe" 2>nul | find /i "setup.exe" >nul
 if errorlevel 1 goto DOWNLOAD_DONE
 
-set /a index=(index+1) %% 4
-<nul set /p "=Downloading Office files... !spinner:~%index%,1!`r"
+REM 👉 Get current Office folder size
+set current_size=0
+if exist "%TARGETDIR%\Office" (
+    for /f "tokens=3" %%a in ('dir /s /-c "%TARGETDIR%\Office" 2^>nul ^| find "File(s)"') do set "current_size=%%a"
+    set "current_size=!current_size:,=!"
+    
+    REM Update if size changed
+    if !current_size! neq !downloaded_size! (
+        set downloaded_size=!current_size!
+        call :FORMAT_SIZE
+    )
+) else (
+    set downloaded_size=0
+    set formatted_size=0 KB
+)
+
+REM 👉 Get spinner character
+if !index!==0 (
+    set spinchar=^|
+) else if !index!==1 (
+    set spinchar=/
+) else if !index!==2 (
+    set spinchar=-
+) else if !index!==3 (
+    set spinchar=\
+)
+
+REM 👉 Display spinner with downloaded size
+<nul set /p "=Downloading Office files... !spinchar! Downloaded: !formatted_size!         "
+echo.
+
+REM 👉 Increment index and wrap around
+set /a index=!index!+1
+if !index!==4 set index=0
+
 timeout /t 1 >nul
 goto SPINNER
+
+:FORMAT_SIZE
+REM 👉 Format size to KB, MB, or GB
+set formatted_size=!downloaded_size! B
+
+if !downloaded_size! gtr 1024 (
+    set /a kb_size=downloaded_size / 1024
+    set formatted_size=!kb_size! KB
+    
+    if !kb_size! gtr 1024 (
+        set /a mb_size=kb_size / 1024
+        set formatted_size=!mb_size! MB
+        
+    )
+)
+exit /b
 
 :DOWNLOAD_DONE
 echo.
@@ -222,6 +277,3 @@ echo =========================================
 echo Office installed successfully
 echo =========================================
 pause
-
-
-
