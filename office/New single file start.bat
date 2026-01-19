@@ -10,6 +10,7 @@ set TARGETDIR=C:\office
 set CURRENTDIR=%~dp0
 set CURRENTDIR=%CURRENTDIR:~0,-1%
 set ODTEXE=officedeploymenttool_17830-20162.exe
+set ODTURL=https://github.com/mrgargsir/msofficeLTSC2021/releases/download/21.1/officedeploymenttool_17830-20162.exe
 
 if /i not "%CURRENTDIR%"=="%TARGETDIR%" (
     echo Moving installer files to %TARGETDIR% ...
@@ -29,6 +30,40 @@ if /i not "%CURRENTDIR%"=="%TARGETDIR%" (
     exit /b
 )
 cd /d "%TARGETDIR%"
+
+REM =====================================================
+REM  ENSURE OFFICE DEPLOYMENT TOOL EXISTS
+REM =====================================================
+
+
+if not exist "%TARGETDIR%\%ODTEXE%" (
+    echo Office Deployment Tool not found.
+    echo Downloading %ODTEXE% ...
+    echo.
+
+    where curl >nul 2>&1
+    if errorlevel 1 (
+        echo ERROR: curl not found. Windows 10+ required.
+        pause
+        exit /b 1
+    )
+
+    curl -L --progress-bar "%ODTURL%" -o "%TARGETDIR%\%ODTEXE%"
+
+    if errorlevel 1 (
+        echo.
+        echo ERROR: Failed to download Office Deployment Tool.
+        pause
+        exit /b 1
+    )
+
+    echo.
+    echo Office Deployment Tool downloaded successfully.
+    echo.
+) else (
+    echo Office Deployment Tool already exists. Skipping download.
+    echo.
+)
 
 echo =========================================
 echo Installing Office Deployment Tool
@@ -187,4 +222,5 @@ echo =========================================
 echo Office installed successfully
 echo =========================================
 pause
+
 
