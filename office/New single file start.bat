@@ -64,6 +64,52 @@ echo Running from %CD%
 echo =========================================
 echo.
 
+REM =====================================================
+REM  CREATE configuration.xml IF MISSING
+REM =====================================================
+
+if not exist "%TARGETDIR%\configuration.xml" (
+    echo configuration.xml not found. Creating default configuration...
+    echo.
+
+    (
+        echo ^<Configuration ID="e42bc234-f06a-4393-91f0-d5998e1bea8f"^>
+        echo   ^<Info Description="" /^>
+        echo   ^<Add OfficeClientEdition="64" Channel="PerpetualVL2021" MigrateArch="TRUE"^>
+        echo     ^<Product ID="Standard2021Volume" PIDKEY="KDX7X-BNVR8-TXXGX-4Q7Y8-78VT3"^>
+        echo       ^<Language ID="en-us" /^>
+        echo       ^<Language ID="MatchPreviousMSI" /^>
+        echo       ^<ExcludeApp ID="OneDrive" /^>
+        echo       ^<ExcludeApp ID="OneNote" /^>
+        echo       ^<ExcludeApp ID="Outlook" /^>
+        echo       ^<ExcludeApp ID="Publisher" /^>
+        echo     ^</Product^>
+        echo   ^</Add^>
+        echo   ^<Property Name="SharedComputerLicensing" Value="0" /^>
+        echo   ^<Property Name="FORCEAPPSHUTDOWN" Value="FALSE" /^>
+        echo   ^<Property Name="DeviceBasedLicensing" Value="0" /^>
+        echo   ^<Property Name="SCLCacheOverride" Value="0" /^>
+        echo   ^<Property Name="AUTOACTIVATE" Value="1" /^>
+        echo   ^<Updates Enabled="TRUE" /^>
+        echo   ^<RemoveMSI /^>
+        echo   ^<AppSettings^>
+        echo     ^<Setup Name="Company" Value="ssb" /^>
+        echo   ^</AppSettings^>
+        echo   ^<Display Level="Full" AcceptEULA="TRUE" /^>
+        echo ^</Configuration^>
+    ) > "%TARGETDIR%\configuration.xml"
+
+    if errorlevel 1 (
+        echo ERROR: Failed to create configuration.xml
+        pause
+        exit /b 1
+    )
+
+    echo configuration.xml created successfully.
+    echo.
+)
+
+
 REM ---- CONFIG ----
 set SETUPURL=https://officecdn.microsoft.com/pr/wsus/setup.exe
 set SETUPEXE=%CD%\setup.exe
@@ -141,3 +187,4 @@ echo =========================================
 echo Office installed successfully
 echo =========================================
 pause
+
