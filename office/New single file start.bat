@@ -90,8 +90,8 @@ echo.
 
     echo.
     echo Relaunching installer...
-    start "" "%TARGETDIR%\%~nx0"
-    exit /b
+    echo start "" "%TARGETDIR%\%~nx0"
+    echo exit /b
 
 echo =========================================
 echo Microsoft Office LTSC 2021 Setup
@@ -222,5 +222,6 @@ echo =========================================
 echo Office installed successfully
 echo =========================================
 pause
+
 
 
