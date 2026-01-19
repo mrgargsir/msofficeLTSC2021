@@ -40,18 +40,54 @@ if not exist "%TARGETDIR%\%ODTEXE%" (
     echo Downloading %ODTEXE% ...
     echo.
 
+    REM Check for available download tools (Windows 7 compatible)
+    set DOWNLOAD_TOOL=
+    
+    REM Check for curl first
     where curl >nul 2>&1
-    if errorlevel 1 (
-        echo ERROR: curl not found. Windows 10+ required.
+    if not errorlevel 1 (
+        set DOWNLOAD_TOOL=curl
+    ) else (
+        REM Check for bitsadmin (Windows 7/8 built-in)
+        bitsadmin >nul 2>&1
+        if not errorlevel 1 (
+            set DOWNLOAD_TOOL=bitsadmin
+        ) else (
+            REM Check for certutil (Windows built-in)
+            certutil >nul 2>&1
+            if not errorlevel 1 (
+                set DOWNLOAD_TOOL=certutil
+            )
+        )
+    )
+    
+    if "!DOWNLOAD_TOOL!"=="" (
+        echo ERROR: No download tool found.
+        echo.
+        echo Please install one of these:
+        echo 1. Download and install curl from: https://curl.se/windows/
+        echo 2. Or download the file manually from:
+        echo    !ODTURL!
+        echo    And save it to: %TARGETDIR%\%ODTEXE%
         pause
         exit /b 1
     )
-
-    curl -L --progress-bar "%ODTURL%" -o "%TARGETDIR%\%ODTEXE%"
-
+    
+    echo Using !DOWNLOAD_TOOL! to download...
+    
+    if "!DOWNLOAD_TOOL!"=="curl" (
+        curl -L --progress-bar "%ODTURL%" -o "%TARGETDIR%\%ODTEXE%"
+    ) else if "!DOWNLOAD_TOOL!"=="bitsadmin" (
+        bitsadmin /transfer ODTDownload /download /priority normal "%ODTURL%" "%TARGETDIR%\%ODTEXE%"
+    ) else if "!DOWNLOAD_TOOL!"=="certutil" (
+        certutil -urlcache -split -f "%ODTURL%" "%TARGETDIR%\%ODTEXE%"
+    )
+    
     if errorlevel 1 (
         echo.
         echo ERROR: Failed to download Office Deployment Tool.
+        echo Please download manually from:
+        echo !ODTURL!
         pause
         exit /b 1
     )
@@ -143,24 +179,53 @@ set SETUPURL=https://officecdn.microsoft.com/pr/wsus/setup.exe
 set SETUPEXE=%CD%\setup.exe
 set CONFIG=%CD%\configuration.xml
 
-REM ---- REQUIRE curl ----
-where curl >nul 2>&1
-if errorlevel 1 (
-    echo ERROR: curl not found. Windows 10+ required.
-    pause
-    exit /b 1
-)
-
-REM ---- DOWNLOAD setup.exe IF MISSING ----
+REM ---- DOWNLOAD setup.exe IF MISSING (Windows 7 compatible) ----
 if not exist "%SETUPEXE%" (
     echo Downloading setup.exe...
     echo.
 
-    curl -L --progress-bar "%SETUPURL%" -o "%SETUPEXE%"
-
+    REM Check for available download tools
+    set DOWNLOAD_TOOL=
+    
+    where curl >nul 2>&1
+    if not errorlevel 1 (
+        set DOWNLOAD_TOOL=curl
+    ) else (
+        bitsadmin >nul 2>&1
+        if not errorlevel 1 (
+            set DOWNLOAD_TOOL=bitsadmin
+        ) else (
+            certutil >nul 2>&1
+            if not errorlevel 1 (
+                set DOWNLOAD_TOOL=certutil
+            )
+        )
+    )
+    
+    if "!DOWNLOAD_TOOL!"=="" (
+        echo ERROR: No download tool found for setup.exe.
+        echo Please download manually from:
+        echo !SETUPURL!
+        echo And save to: !SETUPEXE!
+        pause
+        exit /b 1
+    )
+    
+    echo Using !DOWNLOAD_TOOL! to download setup.exe...
+    
+    if "!DOWNLOAD_TOOL!"=="curl" (
+        curl -L --progress-bar "%SETUPURL%" -o "%SETUPEXE%"
+    ) else if "!DOWNLOAD_TOOL!"=="bitsadmin" (
+        bitsadmin /transfer SetupDownload /download /priority normal "%SETUPURL%" "%SETUPEXE%"
+    ) else if "!DOWNLOAD_TOOL!"=="certutil" (
+        certutil -urlcache -split -f "%SETUPURL%" "%SETUPEXE%"
+    )
+    
     if errorlevel 1 (
         echo.
         echo ERROR: Failed to download setup.exe
+        echo Please download manually from:
+        echo !SETUPURL!
         pause
         exit /b 1
     )
